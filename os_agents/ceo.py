@@ -6,6 +6,8 @@ from tools.actions import execute_action
 from tools.memory import read_memory
 from tools.tasks import read_tasks
 
+from consulting.pipeline import run_live_consulting_pipeline
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -114,6 +116,77 @@ def get_tasks() -> str:
 
 
 @function_tool
+def run_consulting_analysis(
+    business_problem: str,
+    objective: str,
+    problem_type: str = "multi_domain",
+    structure: str = "decision",
+) -> str:
+    """
+    Run the LOHITH OS Consulting Brain on a business problem.
+    """
+
+    try:
+        result = run_live_consulting_pipeline(
+            business_problem=business_problem,
+            objective=objective,
+            problem_type=problem_type,
+            structure=structure,
+        )
+    except Exception as exc:
+        return (
+            "CONSULTING_ANALYSIS_UNAVAILABLE: "
+            f"{type(exc).__name__}: {exc}"
+        )
+
+    decision = result["decision_package"]
+
+    lines = [
+        "CONSULTING ANALYSIS COMPLETE",
+        "",
+        f"Recommendation: {decision['recommendation']}",
+        "",
+        "Recommendation rationale:",
+        decision["recommendation_rationale"],
+        "",
+        "Key findings:",
+    ]
+
+    lines.extend(
+        f"- {item}"
+        for item in decision["key_findings"]
+    )
+
+    lines.append("")
+    lines.append("Root causes:")
+    lines.extend(
+        f"- {item}"
+        for item in decision["root_causes"]
+    )
+
+    lines.append("")
+    lines.append("Implementation priorities:")
+    lines.extend(
+        f"- {item}"
+        for item in decision["implementation_priorities"]
+    )
+
+    lines.append("")
+    lines.append("KPIs:")
+    lines.extend(
+        f"- {item}"
+        for item in decision["kpis"]
+    )
+
+    lines.append("")
+    lines.append(
+        f"Confidence: {decision['confidence']}"
+    )
+
+    return "\n".join(lines)
+
+
+@function_tool
 def get_memory() -> str:
     """
     Read LOHITH OS long-term memory.
@@ -208,6 +281,12 @@ CORE RESPONSIBILITIES
 2. Identify the highest-leverage opportunities.
 
 3. Turn vague ideas into concrete actions.
+
+4. Use the Consulting Brain for substantial business or decision problems.
+   Do not use it for trivial requests where direct reasoning is sufficient.
+
+5. Treat consulting recommendations as analytical input.
+   Apply CEO judgment, founder context and human-approval rules before execution.
 
 4. Challenge weak assumptions and unrealistic plans.
 
@@ -394,6 +473,7 @@ def create_ceo():
             save_strategic_decision,
             get_tasks,
             get_memory,
+            run_consulting_analysis,
         ],
     )
 
